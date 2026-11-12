@@ -237,6 +237,12 @@ def apply_sigma_parametrization(raw, network):
         logstd_bounds = getattr(network, 'logstd_bounds', None)
         if logstd_bounds is not None:
             raw = torch.clamp(raw, logstd_bounds[0], logstd_bounds[1])
+        if max_sigma > 0:
+            span = max_sigma - min_sigma
+            # Evaluate span * exp(raw) / (span + exp(raw)) without
+            # overflowing exp(raw), including its backward pass.
+            sigma = min_sigma + span * torch.exp(-F.softplus(math.log(span) - raw))
+            return sigma, torch.log(sigma)
         sigma = torch.exp(raw)
         if min_sigma > 0:
             sigma = sigma + min_sigma
