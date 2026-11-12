@@ -334,10 +334,12 @@ class LayerNorm2d(nn.Module):
 
     def forward(self, x):
         self._check_input_dim(x)
-        x_flat = x.transpose(1,-1).contiguous().view((-1, x.size(1)))
-        mean = x_flat.mean(0).unsqueeze(-1).unsqueeze(-1).expand_as(x)
-        std = x_flat.std(0).unsqueeze(-1).unsqueeze(-1).expand_as(x)
-        return self.gamma.expand_as(x) * (x - mean) / (std + self.eps) + self.beta.expand_as(x)
+        # Normalize channels independently at each pixel, without mixing
+        # observations or spatial positions into the statistics.
+        return torch.nn.functional.layer_norm(
+            x.movedim(1, -1), (self.features,),
+            self.gamma.reshape(-1), self.beta.reshape(-1), self.eps,
+        ).movedim(-1, 1)
 
 
 class DiscreteActionsEncoder(nn.Module):
