@@ -27,7 +27,7 @@ class CategoricalMasked(torch.distributions.Categorical):
             super(CategoricalMasked, self).__init__(probs, logits, validate_args)
         else:
             self.device = self.masks.device
-            logits = torch.where(self.masks, logits, torch.tensor(-1e+8).to(self.device))
+            logits = logits.masked_fill(~self.masks, float('-inf'))
             super(CategoricalMasked, self).__init__(probs, logits, validate_args)
     
     def rsample(self):
@@ -37,11 +37,7 @@ class CategoricalMasked(torch.distributions.Categorical):
         return torch.max(rand_logits, axis=-1)[1]
 
     def entropy(self):
-        if self.masks is None:
-            return super(CategoricalMasked, self).entropy()
-        p_log_p = self.logits * self.probs
-        p_log_p = torch.where(self.masks, p_log_p, torch.tensor(0.0).to(self.device))
-        return -p_log_p.sum(-1)
+        return super().entropy()
 
 
 class OneHotDist(distr.one_hot_categorical.OneHotCategoricalStraightThrough):

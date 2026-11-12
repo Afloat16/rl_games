@@ -6,8 +6,8 @@ import torch.distributions as dist
 def d_kl_discrete(p, q):
     # p = target, q = online
     # categorical distribution parametrized by logits
-    logits_diff = p - q
     p_probs = torch.exp(p)
+    logits_diff = torch.where(p_probs > 0, p - q, 0.0)
     d_kl = (p_probs * logits_diff).sum(-1)
     return d_kl
 
